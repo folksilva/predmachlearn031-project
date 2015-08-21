@@ -1,0 +1,116 @@
+---
+title: "Prediction Assignment Writeup"
+author: "Luiz Fernando da Silva"
+date: "August, 2015"
+output: html_document
+---
+
+Atualmente é possível obter um grande volume de dados sobre atividades do nosso dia a dia de forma simples e barata. Em um estudo acelerometros foram colocados no cinto, antebraço, braço e halteres de 6 participantes, eles realizaram um movimento de 5 formas diferentes. Esse documento busca criar um modelo capaz de prever a forma como uma pessoa está fazendo o mesmo exercício.
+
+```{r}
+library(caret)
+library(randomForest)
+```
+
+
+## Carregando os dados
+
+Os dados estão contidos em dois arquivos CSV, um para os dados de treinamento, que inclui a variável CLASSE, e outro para teste, onde o algoritmo deverá prever qual é a CLASSE.
+
+```{r cache=TRUE}
+set.seed(1910)
+training <- read.csv("pml-training.csv", header=TRUE, sep=",", na.strings=c("NA", "", "#DIV/0!"))
+testing <- read.csv("pml-testing.csv", header=TRUE, sep=",", na.strings=c("NA", "", "#DIV/0!"))
+```
+
+Vamos conferir quantos registros existem para cada classe:
+
+```{r}
+summary(training$classe)
+```
+
+Como existem muitas variáveis nesse conjunto de dados vamos remover as colunas com variância próxima de zero:
+
+```{r}
+near_zero <- nearZeroVar(training,saveMetrics=TRUE)
+training <- training[, !near_zero$nzv]
+testing <- testing[, !near_zero$nzv]
+```
+
+Ainda existem muitas variáveis com valores faltando, vamos remover as que tem menos que 51% de dados:
+
+```{r}
+lowDataCols <- c((colSums(!is.na(training[,-ncol(training)])) >= 0.51 * nrow(training)))
+training <- training[, lowDataCols]
+testing <- testing[, lowDataCols]
+```
+
+Outras variáveis podem influenciar o resultado mas não tem importância real, vamos removê-los também:
+
+```{r}
+drops <- c("X", "user_name", "raw_timestamp_part_1", "raw_timestamp_part_2", "cvtd_timestamp", 
+     "num_window")
+training <- training[, !(names(training) %in% drops)]
+testing <- testing[, !(names(testing) %in% drops)]
+```
+
+Agora vamos dividir os dados preprocessados em conjuntos de treinamento e validação.
+
+```{r}
+inTrain <- createDataPartition(y=training$classe, p=0.7, list=FALSE)
+final_training <- training[inTrain,]
+final_validation <- training[inTrain,]
+```
+
+## Criando o modelo
+
+Para ter uma melhor precisão na previsão vou utilizar o algoritmo randomForest.
+
+```{r cache=TRUE}
+model <- randomForest(classe~., data=final_training)
+```
+
+Vamos validar o modelo:
+
+```{r}
+validation <- predict(model, newdata=final_validation)
+confusionMatrix(validation, final_validation$classe)
+```
+
+Vamos verificar a precisão do modelo:
+
+```{r}
+accuracy <- c(as.numeric(validation==final_validation$classe))
+accuracy <- sum(accuracy) * 100 / nrow(final_validation)
+```
+
+Conseguimos uma precisão no teste de **`r accuracy`%**.
+
+```{r}
+plot(model, lty=c(1,1,1,1,1,1), main="Estimated Error by Number of Trees")
+```
+
+```{r fig.height=8}
+varImpPlot(model, main="Predictors Importance")
+```
+
+
+## Testando a previsão
+
+Agora vamos testar a previsão em um novo conjunto com 20 registros:
+
+```{r}
+test <- predict(model, newdata=testing)
+test
+```
+
+```{r}
+test_table <- table(test)
+test_table
+```
+
+
+
+
+
+
