@@ -95,7 +95,7 @@ varImpPlot(model, main="Predictors Importance")
 ```
 
 
-## Testando a previsão
+## Testing the prediction
 
 Now let's test the prediction in a new data set of 20 records:
 
