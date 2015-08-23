@@ -5,7 +5,7 @@ date: "August, 2015"
 output: html_document
 ---
 
-Atualmente é possível obter um grande volume de dados sobre atividades do nosso dia a dia de forma simples e barata. Em um estudo acelerometros foram colocados no cinto, antebraço, braço e halteres de 6 participantes, eles realizaram um movimento de 5 formas diferentes. Esse documento busca criar um modelo capaz de prever a forma como uma pessoa está fazendo o mesmo exercício.
+Currently is possible to get a large volume of data about activities of our daily lives in a simply and cheaply way. In one study, accelerometer were placed on the belt, arm and barbells of 6 participants, they performed a movement in 5 different ways. This document seeks to create a model able to predict how a person is doing the same exercise.
 
 ```{r}
 library(caret)
@@ -13,9 +13,9 @@ library(randomForest)
 ```
 
 
-## Carregando os dados
+## Loading the data
 
-Os dados estão contidos em dois arquivos CSV, um para os dados de treinamento, que inclui a variável CLASSE, e outro para teste, onde o algoritmo deverá prever qual é a CLASSE.
+The data is contained in two CSV files, one for the training data, which includes the variable `classe`, and another for testing, where the algorithm should provide what is the `classe`'.
 
 ```{r cache=TRUE}
 set.seed(1910)
@@ -23,13 +23,13 @@ training <- read.csv("pml-training.csv", header=TRUE, sep=",", na.strings=c("NA"
 testing <- read.csv("pml-testing.csv", header=TRUE, sep=",", na.strings=c("NA", "", "#DIV/0!"))
 ```
 
-Vamos conferir quantos registros existem para cada classe:
+Let's check how many records exist for each `classe`:
 
 ```{r}
 summary(training$classe)
 ```
 
-Como existem muitas variáveis nesse conjunto de dados vamos remover as colunas com variância próxima de zero:
+Since there are many variables in this data set we will remove the columns with close to zero variance:
 
 ```{r}
 near_zero <- nearZeroVar(training,saveMetrics=TRUE)
@@ -37,7 +37,7 @@ training <- training[, !near_zero$nzv]
 testing <- testing[, !near_zero$nzv]
 ```
 
-Ainda existem muitas variáveis com valores faltando, vamos remover as que tem menos que 51% de dados:
+There are still many variables with missing values, we will remove those that have less than 51% of data:
 
 ```{r}
 lowDataCols <- c((colSums(!is.na(training[,-ncol(training)])) >= 0.51 * nrow(training)))
@@ -45,7 +45,7 @@ training <- training[, lowDataCols]
 testing <- testing[, lowDataCols]
 ```
 
-Outras variáveis podem influenciar o resultado mas não tem importância real, vamos removê-los também:
+Other variables can influence the outcome but has no real importance, we will remove them also:
 
 ```{r}
 drops <- c("X", "user_name", "raw_timestamp_part_1", "raw_timestamp_part_2", "cvtd_timestamp", 
@@ -54,7 +54,7 @@ training <- training[, !(names(training) %in% drops)]
 testing <- testing[, !(names(testing) %in% drops)]
 ```
 
-Agora vamos dividir os dados preprocessados em conjuntos de treinamento e validação.
+Now let's split the data preprocessed into training and validation sets:
 
 ```{r}
 inTrain <- createDataPartition(y=training$classe, p=0.7, list=FALSE)
@@ -62,29 +62,29 @@ final_training <- training[inTrain,]
 final_validation <- training[inTrain,]
 ```
 
-## Criando o modelo
+## Creating the model
 
-Para ter uma melhor precisão na previsão vou utilizar o algoritmo randomForest.
+To get a better accuracy in prediction will use randomForest algorithm.
 
 ```{r cache=TRUE}
 model <- randomForest(classe~., data=final_training)
 ```
 
-Vamos validar o modelo:
+We will validate the model:
 
 ```{r}
 validation <- predict(model, newdata=final_validation)
 confusionMatrix(validation, final_validation$classe)
 ```
 
-Vamos verificar a precisão do modelo:
+Let's check the accuracy of the model:
 
 ```{r}
 accuracy <- c(as.numeric(validation==final_validation$classe))
 accuracy <- sum(accuracy) * 100 / nrow(final_validation)
 ```
 
-Conseguimos uma precisão no teste de **`r accuracy`%**.
+We got a precision in the test of **`r accuracy`%**.
 
 ```{r}
 plot(model, lty=c(1,1,1,1,1,1), main="Estimated Error by Number of Trees")
@@ -97,7 +97,7 @@ varImpPlot(model, main="Predictors Importance")
 
 ## Testando a previsão
 
-Agora vamos testar a previsão em um novo conjunto com 20 registros:
+Now let's test the prediction in a new data set of 20 records:
 
 ```{r}
 test <- predict(model, newdata=testing)
@@ -110,6 +110,15 @@ test_table
 ```
 
 
+For the second part of assignment:
+
+```{r}
+n = length(test)
+for(i in 1:n){
+  filename = paste0("problem_id_",i,".txt")
+  write.table(test[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+}
+```
 
 
 
